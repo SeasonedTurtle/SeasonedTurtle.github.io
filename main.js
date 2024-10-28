@@ -1,120 +1,93 @@
-const canvas = document.getElementById("canvas");
-const svg = document.getElementById("connection-lines");
+// Gate colors
+const gateColors = {
+    "AND": "#2980b9",
+    "OR": "#e67e22",
+    "XOR": "#f39c12",
+    "NOT": "#2ecc71",
+    "NAND": "#d35400",
+    "NOR": "#8e44ad",
+    "XNOR": "#c0392b"
+};
+
+const logicFunctions = {
+    AND: (a, b) => a && b,
+    OR: (a, b) => a || b,
+    XOR: (a, b) => a !== b,
+    NOT: (a) => !a,
+    NAND: (a, b) => !(a && b),
+    NOR: (a, b) => !(a || b),
+    XNOR: (a, b) => a === b,
+};
 
 let blocks = [];
-let outputBlock = null;
+let connections = [];
 
-class Block {
-    constructor(x, y, type, func) {
-        this.x = x;
-        this.y = y;
-        this.type = type;
-        this.func = func;
-        this.inputs = [];
-        this.output = null;
-        this.connectedTo = null;
+// Create a block with specified type and position
+function createBlock(type, x = 100, y = 100) {
+    const block = document.createElement("div");
+    block.classList.add("block");
+    block.style.background = gateColors[type];
+    block.textContent = type;
+    block.style.left = x + "px";
+    block.style.top = y + "px";
+    block.setAttribute("data-type", type);
+    block.setAttribute("draggable", true);
 
-        this.element = document.createElement("div");
-        this.element.className = "block " + (type === "Input" ? "input-block" : type === "Output" ? "output-block" : "logic-block");
-        this.element.innerText = type;
-        this.element.style.left = `${x}px`;
-        this.element.style.top = `${y}px`;
-        canvas.parentNode.appendChild(this.element);
-
-        this.element.addEventListener("mousedown", this.onMouseDown.bind(this));
-    }
-
-    onMouseDown(e) {
-        e.preventDefault();
-        document.addEventListener("mousemove", this.onMouseMove.bind(this));
-        document.addEventListener("mouseup", this.onMouseUp.bind(this));
-        this.offsetX = e.clientX - this.x;
-        this.offsetY = e.clientY - this.y;
-    }
-
-    onMouseMove(e) {
-        this.x = e.clientX - this.offsetX;
-        this.y = e.clientY - this.offsetY;
-        this.updatePosition();
-        this.updateConnections();
-    }
-
-    onMouseUp() {
-        document.removeEventListener("mousemove", this.onMouseMove.bind(this));
-        document.removeEventListener("mouseup", this.onMouseUp.bind(this));
-    }
-
-    updatePosition() {
-        this.element.style.left = `${this.x}px`;
-        this.element.style.top = `${this.y}px`;
-    }
-
-    updateConnections() {
-        if (this.connectedTo) {
-            this.connectedTo.updateLine(this);
-        }
-    }
-
-    connectTo(target) {
-        this.connectedTo = new ConnectionLine(this, target);
-    }
-
-    calculate() {
-        if (this.type === "Input") return this.output;
-        if (this.func) {
-            const inputValues = this.inputs.map(input => input.output);
-            this.output = this.func(...inputValues);
-        }
-    }
+    block.addEventListener("mousedown", (e) => startDrag(e, block));
+    blocks.push({ element: block, type, inputs: [], output: null });
+    document.getElementById("workspace").appendChild(block);
 }
 
-class ConnectionLine {
-    constructor(startBlock, endBlock) {
-        this.startBlock = startBlock;
-        this.endBlock = endBlock;
-        this.line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        this.line.setAttribute("stroke", "black");
-        this.line.setAttribute("stroke-width", 2);
-        svg.appendChild(this.line);
-        this.updateLine();
-    }
+// Variables for drag and drop functionality
+let offsetX, offsetY;
 
-    updateLine() {
-        this.line.setAttribute("x1", this.startBlock.x + 50);
-        this.line.setAttribute("y1", this.startBlock.y + 30);
-        this.line.setAttribute("x2", this.endBlock.x + 50);
-        this.line.setAttribute("y2", this.endBlock.y + 30);
-    }
+// Start dragging the block
+function startDrag(e, block) {
+    offsetX = e.offsetX;
+    offsetY = e.offsetY;
+    document.onmousemove = (event) => moveBlock(event, block);
+    document.onmouseup = () => stopDrag();
 }
 
-function addGate(type) {
-    const func = type === "AND" ? (a, b) => a && b : type === "OR" ? (a, b) => a || b : (a) => !a;
-    blocks.push(new Block(100, 100, type, func));
+// Move the block while dragging
+function moveBlock(e, block) {
+    block.style.left = e.pageX - offsetX + "px";
+    block.style.top = e.pageY - offsetY + "px";
 }
 
-function addInput() {
-    const inputBlock = new Block(100, 200, "Input", null);
-    blocks.push(inputBlock);
+// Stop dragging the block
+function stopDrag() {
+    document.onmousemove = null;
+    document.onmouseup = null;
 }
 
-function addOutput() {
-    if (outputBlock) {
-        alert("Only one output block allowed");
-        return;
-    }
-    outputBlock = new Block(300, 200, "Output", null);
-    blocks.push(outputBlock);
+// Connect blocks together
+function connectBlocks(outputBlock, inputBlock) {
+    connections.push({ from: outputBlock, to: inputBlock });
+    inputBlock.inputs.push(outputBlock.output);
 }
 
+// Calculate and display the result
 function calculateResult() {
-    blocks.forEach(block => block.calculate());
-    document.getElementById("result").textContent = "Result: " + (outputBlock.output ? "True" : "False");
+    let resultDisplay = document.getElementById("result-display");
+    let finalResults = [];
+
+    blocks.forEach(block => {
+        if (block.inputs.length > 0) {
+            const inputValues = block.inputs.map(input => parseInt(input));
+            block.output = logicFunctions[block.type](...inputValues);
+            finalResults.push(`Output of ${block.type}: ${block.output ? "True" : "False"}`);
+        }
+    });
+
+    resultDisplay.textContent = `Result: ${finalResults.join(', ')}`;
 }
 
-function resetCanvas() {
-    blocks.forEach(block => block.element.remove());
-    blocks = [];
-    outputBlock = null;
-    svg.innerHTML = '';
-    document.getElementById("result").textContent = "Result: ";
-}
+// Create blocks as an example
+createBlock("AND", 50, 50);
+createBlock("OR", 150, 50);
+createBlock("XOR", 250, 50);
+createBlock("NOT", 350, 50);
+createBlock("NAND", 450, 50);
+createBlock("NOR", 550, 50);
+createBlock("XNOR", 650, 50);
