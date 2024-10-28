@@ -1,0 +1,15 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+}
+
+.side-panel {
+    width: 200px;
+    padding: 10px;
+    background-color: #f0f0f0;
+}
+
+#canvas {
+    border: 1px solid #ddd;
+    margin-left: 10px;
+}
