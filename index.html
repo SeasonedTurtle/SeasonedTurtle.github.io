@@ -7,17 +7,22 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="side-panel">
-        <button onclick="addGate('AND')">AND</button>
-        <button onclick="addGate('OR')">OR</button>
-        <button onclick="addGate('NOT')">NOT</button>
-        <button onclick="addInput()">Input</button>
-        <button onclick="addOutput()">Output</button>
-        <button onclick="calculateResult()">Calculate Result</button>
-        <button onclick="resetCanvas()">Reset</button>
-        <div id="result">Result: </div>
+    <div class="app-container">
+        <div class="side-panel">
+            <button onclick="addGate('AND')">AND</button>
+            <button onclick="addGate('OR')">OR</button>
+            <button onclick="addGate('NOT')">NOT</button>
+            <button onclick="addInput()">Input</button>
+            <button onclick="addOutput()">Output</button>
+            <button onclick="calculateResult()">Calculate</button>
+            <button onclick="resetCanvas()">Reset</button>
+            <div id="result" class="result-panel">Result: </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+            <svg id="connection-lines"></svg>
+        </div>
     </div>
-    <canvas id="canvas" width="800" height="600"></canvas>
     <script src="script.js"></script>
 </body>
 </html>

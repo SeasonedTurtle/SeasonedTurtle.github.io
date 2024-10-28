@@ -1,8 +1,7 @@
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("canvas");
+const svg = document.getElementById("connection-lines");
 
 let blocks = [];
-let lines = [];
 let outputBlock = null;
 
 class Block {
@@ -13,66 +12,89 @@ class Block {
         this.func = func;
         this.inputs = [];
         this.output = null;
+        this.connectedTo = null;
+
+        this.element = document.createElement("div");
+        this.element.className = "block " + (type === "Input" ? "input-block" : type === "Output" ? "output-block" : "logic-block");
+        this.element.innerText = type;
+        this.element.style.left = `${x}px`;
+        this.element.style.top = `${y}px`;
+        canvas.parentNode.appendChild(this.element);
+
+        this.element.addEventListener("mousedown", this.onMouseDown.bind(this));
     }
 
-    draw() {
-        ctx.fillStyle = "lightblue";
-        ctx.fillRect(this.x, this.y, 80, 50);
-        ctx.fillStyle = "black";
-        ctx.fillText(this.type, this.x + 10, this.y + 30);
-    }
-}
-
-class InputBlock extends Block {
-    constructor(x, y) {
-        super(x, y, "Input", null);
-        this.value = null;
+    onMouseDown(e) {
+        e.preventDefault();
+        document.addEventListener("mousemove", this.onMouseMove.bind(this));
+        document.addEventListener("mouseup", this.onMouseUp.bind(this));
+        this.offsetX = e.clientX - this.x;
+        this.offsetY = e.clientY - this.y;
     }
 
-    draw() {
-        ctx.fillStyle = "lightgreen";
-        ctx.fillRect(this.x, this.y, 80, 50);
-        ctx.fillStyle = "black";
-        ctx.fillText("Input", this.x + 10, this.y + 30);
-    }
-}
-
-class OutputBlock extends Block {
-    constructor(x, y) {
-        super(x, y, "Output", null);
+    onMouseMove(e) {
+        this.x = e.clientX - this.offsetX;
+        this.y = e.clientY - this.offsetY;
+        this.updatePosition();
+        this.updateConnections();
     }
 
-    draw() {
-        ctx.fillStyle = "lightcoral";
-        ctx.fillRect(this.x, this.y, 80, 50);
-        ctx.fillStyle = "black";
-        ctx.fillText("Output", this.x + 10, this.y + 30);
+    onMouseUp() {
+        document.removeEventListener("mousemove", this.onMouseMove.bind(this));
+        document.removeEventListener("mouseup", this.onMouseUp.bind(this));
+    }
+
+    updatePosition() {
+        this.element.style.left = `${this.x}px`;
+        this.element.style.top = `${this.y}px`;
+    }
+
+    updateConnections() {
+        if (this.connectedTo) {
+            this.connectedTo.updateLine(this);
+        }
+    }
+
+    connectTo(target) {
+        this.connectedTo = new ConnectionLine(this, target);
     }
 
     calculate() {
-        if (this.inputs[0]) {
-            this.output = this.inputs[0].output;
+        if (this.type === "Input") return this.output;
+        if (this.func) {
+            const inputValues = this.inputs.map(input => input.output);
+            this.output = this.func(...inputValues);
         }
     }
 }
 
-function addGate(type) {
-    let func;
-    switch(type) {
-        case 'AND': func = (a, b) => a && b; break;
-        case 'OR': func = (a, b) => a || b; break;
-        case 'NOT': func = (a) => !a; break;
-        default: return;
+class ConnectionLine {
+    constructor(startBlock, endBlock) {
+        this.startBlock = startBlock;
+        this.endBlock = endBlock;
+        this.line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        this.line.setAttribute("stroke", "black");
+        this.line.setAttribute("stroke-width", 2);
+        svg.appendChild(this.line);
+        this.updateLine();
     }
-    const block = new Block(100, 100, type, func);
-    blocks.push(block);
-    drawCanvas();
+
+    updateLine() {
+        this.line.setAttribute("x1", this.startBlock.x + 50);
+        this.line.setAttribute("y1", this.startBlock.y + 30);
+        this.line.setAttribute("x2", this.endBlock.x + 50);
+        this.line.setAttribute("y2", this.endBlock.y + 30);
+    }
+}
+
+function addGate(type) {
+    const func = type === "AND" ? (a, b) => a && b : type === "OR" ? (a, b) => a || b : (a) => !a;
+    blocks.push(new Block(100, 100, type, func));
 }
 
 function addInput() {
-    const inputBlock = new InputBlock(100, 200);
+    const inputBlock = new Block(100, 200, "Input", null);
     blocks.push(inputBlock);
-    drawCanvas();
 }
 
 function addOutput() {
@@ -80,31 +102,19 @@ function addOutput() {
         alert("Only one output block allowed");
         return;
     }
-    outputBlock = new OutputBlock(300, 200);
+    outputBlock = new Block(300, 200, "Output", null);
     blocks.push(outputBlock);
-    drawCanvas();
 }
 
 function calculateResult() {
-    outputBlock.calculate();
+    blocks.forEach(block => block.calculate());
     document.getElementById("result").textContent = "Result: " + (outputBlock.output ? "True" : "False");
 }
 
 function resetCanvas() {
+    blocks.forEach(block => block.element.remove());
     blocks = [];
-    lines = [];
     outputBlock = null;
+    svg.innerHTML = '';
     document.getElementById("result").textContent = "Result: ";
-    drawCanvas();
 }
-
-function drawCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    blocks.forEach(block => block.draw());
-}
-
-canvas.addEventListener("click", (e) => {
-    const x = e.offsetX;
-    const y = e.offsetY;
-    // Add logic to select, move, or connect blocks
-});
