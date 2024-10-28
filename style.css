@@ -1,88 +1,59 @@
-* {
-    box-sizing: border-box;
-}
+/* style.css */
 
 body, html {
     margin: 0;
     padding: 0;
-    overflow: hidden;
-    background: #2c3e50;
     font-family: Arial, sans-serif;
     display: flex;
     height: 100vh;
-    width: 100vw;
-    color: #ecf0f1;
-}
-
-#workspace {
-    width: 75vw;
-    height: 100vh;
-    background: #34495e;
-    position: relative;
-    overflow: hidden;
-}
-
-#sidebar {
-    width: 25vw;
-    height: 100vh;
-    background: #1abc9c;
+  }
+  
+  #app {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 20px;
-    overflow-y: auto;
-    transition: all 0.3s ease-in-out;
-}
-
-.block {
-    width: 100px;
-    height: 50px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 12px;
-    color: #fff;
-    margin: 15px 0;
-    font-weight: bold;
-    position: absolute;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.3s ease, transform 0.3s ease;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.block:hover {
-    transform: scale(1.1);
-}
-
-.input-block {
-    background: #3498db;
-}
-
-.output-block {
-    background: #e74c3c;
-}
-
-.calculate-btn {
-    background: #e67e22;
-    padding: 12px;
-    margin: 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    color: #fff;
+    width: 100%;
+  }
+  
+  #sidebar {
+    width: 200px;
+    padding: 20px;
+    background-color: #f4f4f4;
+    border-right: 1px solid #ccc;
+  }
+  
+  #sidebar h2 {
     text-align: center;
-    font-size: 18px;
-    font-weight: bold;
-    transition: background 0.2s;
-}
-
-.calculate-btn:hover {
-    background: #d35400;
-}
-
-.result {
-    font-size: 20px;
-    font-weight: bold;
+  }
+  
+  #sidebar button {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  
+  #workspace {
+    flex-grow: 1;
+    background-color: #e0e0e0;
+    position: relative;
+  }
+  
+  .block {
+    position: absolute;
+    width: 80px;
+    height: 40px;
+    background-color: #ff5722;
+    color: white;
+    text-align: center;
+    line-height: 40px;
+    border-radius: 5px;
+    cursor: move;
+  }
+  
+  #output {
     margin-top: 20px;
-    transition: color 0.2s ease;
-}
+  }
+  

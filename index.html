@@ -1,17 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logic Gate Simulator</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logic Gate Simulator</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div id="app">
     <div id="sidebar">
-        <div class="calculate-btn" onclick="calculateResult()">Calculate Result</div>
-        <div class="result" id="result-display">Result: </div>
+      <h2>Logic Gate Simulator</h2>
+      <button onclick="createGate('AND')">AND Gate</button>
+      <button onclick="createGate('OR')">OR Gate</button>
+      <button onclick="createGate('XOR')">XOR Gate</button>
+      <button onclick="createGate('NOT')">NOT Gate</button>
+      <button onclick="createGate('NAND')">NAND Gate</button>
+      <button onclick="createGate('NOR')">NOR Gate</button>
+      <button onclick="createGate('XNOR')">XNOR Gate</button>
+      <button onclick="createInputBlock()">Input Block</button>
+      <button onclick="calculateResult()">Calculate Result</button>
+      <div id="output"></div>
     </div>
     <div id="workspace"></div>
-    <script src="script.js"></script>
+  </div>
+  <script src="script.js"></script>
 </body>
 </html>

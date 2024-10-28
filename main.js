@@ -1,93 +1,84 @@
-// Gate colors
-const gateColors = {
-    "AND": "#2980b9",
-    "OR": "#e67e22",
-    "XOR": "#f39c12",
-    "NOT": "#2ecc71",
-    "NAND": "#d35400",
-    "NOR": "#8e44ad",
-    "XNOR": "#c0392b"
+// script.js
+
+let workspace = document.getElementById("workspace");
+let outputDisplay = document.getElementById("output");
+let gateCount = 0;
+let inputCount = 0;
+let gates = [];
+
+// Define logic operations for each gate
+const gateLogic = {
+  AND: (a, b) => a && b,
+  OR: (a, b) => a || b,
+  XOR: (a, b) => a ^ b,
+  NOT: (a) => !a,
+  NAND: (a, b) => !(a && b),
+  NOR: (a, b) => !(a || b),
+  XNOR: (a, b) => !(a ^ b),
 };
 
-const logicFunctions = {
-    AND: (a, b) => a && b,
-    OR: (a, b) => a || b,
-    XOR: (a, b) => a !== b,
-    NOT: (a) => !a,
-    NAND: (a, b) => !(a && b),
-    NOR: (a, b) => !(a || b),
-    XNOR: (a, b) => a === b,
-};
+// Create Gate Block
+function createGate(type) {
+  let gate = document.createElement("div");
+  gate.classList.add("block");
+  gate.textContent = type;
+  gate.dataset.type = type;
+  gate.dataset.id = `gate${gateCount++}`;
+  gate.dataset.inputs = JSON.stringify([]);
+  gate.style.top = `${Math.random() * 400}px`;
+  gate.style.left = `${Math.random() * 400}px`;
 
-let blocks = [];
-let connections = [];
-
-// Create a block with specified type and position
-function createBlock(type, x = 100, y = 100) {
-    const block = document.createElement("div");
-    block.classList.add("block");
-    block.style.background = gateColors[type];
-    block.textContent = type;
-    block.style.left = x + "px";
-    block.style.top = y + "px";
-    block.setAttribute("data-type", type);
-    block.setAttribute("draggable", true);
-
-    block.addEventListener("mousedown", (e) => startDrag(e, block));
-    blocks.push({ element: block, type, inputs: [], output: null });
-    document.getElementById("workspace").appendChild(block);
+  gate.addEventListener("click", () => toggleInput(gate));
+  workspace.appendChild(gate);
+  gates.push(gate);
 }
 
-// Variables for drag and drop functionality
-let offsetX, offsetY;
+// Create Input Block
+function createInputBlock() {
+  let inputBlock = document.createElement("div");
+  inputBlock.classList.add("block");
+  inputBlock.textContent = `Input ${inputCount}`;
+  inputBlock.dataset.type = "INPUT";
+  inputBlock.dataset.value = 0;
+  inputBlock.dataset.id = `input${inputCount++}`;
+  inputBlock.style.top = `${Math.random() * 400}px`;
+  inputBlock.style.left = `${Math.random() * 400}px`;
 
-// Start dragging the block
-function startDrag(e, block) {
-    offsetX = e.offsetX;
-    offsetY = e.offsetY;
-    document.onmousemove = (event) => moveBlock(event, block);
-    document.onmouseup = () => stopDrag();
+  inputBlock.addEventListener("click", () => toggleValue(inputBlock));
+  workspace.appendChild(inputBlock);
+  gates.push(inputBlock);
 }
 
-// Move the block while dragging
-function moveBlock(e, block) {
-    block.style.left = e.pageX - offsetX + "px";
-    block.style.top = e.pageY - offsetY + "px";
+// Toggle input block value
+function toggleValue(inputBlock) {
+  inputBlock.dataset.value = inputBlock.dataset.value === "0" ? "1" : "0";
+  inputBlock.style.backgroundColor = inputBlock.dataset.value === "1" ? "#4CAF50" : "#f44336";
 }
 
-// Stop dragging the block
-function stopDrag() {
-    document.onmousemove = null;
-    document.onmouseup = null;
+// Connect blocks by setting inputs
+function toggleInput(gate) {
+  let availableInputs = gates.filter((g) => g.dataset.type === "INPUT" || g.dataset.type === "GATE");
+  let selectedInputs = JSON.parse(gate.dataset.inputs);
+
+  if (selectedInputs.length < (gate.dataset.type === "NOT" ? 1 : 2)) {
+    let input = availableInputs.find((i) => !selectedInputs.includes(i.dataset.id));
+    if (input) selectedInputs.push(input.dataset.id);
+  }
+
+  gate.dataset.inputs = JSON.stringify(selectedInputs);
 }
 
-// Connect blocks together
-function connectBlocks(outputBlock, inputBlock) {
-    connections.push({ from: outputBlock, to: inputBlock });
-    inputBlock.inputs.push(outputBlock.output);
-}
-
-// Calculate and display the result
+// Calculate the result by applying gate logic
 function calculateResult() {
-    let resultDisplay = document.getElementById("result-display");
-    let finalResults = [];
-
-    blocks.forEach(block => {
-        if (block.inputs.length > 0) {
-            const inputValues = block.inputs.map(input => parseInt(input));
-            block.output = logicFunctions[block.type](...inputValues);
-            finalResults.push(`Output of ${block.type}: ${block.output ? "True" : "False"}`);
-        }
-    });
-
-    resultDisplay.textContent = `Result: ${finalResults.join(', ')}`;
+  outputDisplay.innerHTML = "<h3>Results:</h3>";
+  gates.forEach((gate) => {
+    if (gate.dataset.type !== "INPUT") {
+      let inputs = JSON.parse(gate.dataset.inputs).map(
+        (inputId) => gates.find((g) => g.dataset.id === inputId).dataset.value
+      );
+      let result = gateLogic[gate.dataset.type](...inputs.map(Number));
+      outputDisplay.innerHTML += `<p>${gate.dataset.type} ${gate.dataset.id}: ${result ? "1" : "0"}</p>`;
+      gate.dataset.value = result ? "1" : "0";
+    }
+  });
 }
-
-// Create blocks as an example
-createBlock("AND", 50, 50);
-createBlock("OR", 150, 50);
-createBlock("XOR", 250, 50);
-createBlock("NOT", 350, 50);
-createBlock("NAND", 450, 50);
-createBlock("NOR", 550, 50);
-createBlock("XNOR", 650, 50);
