@@ -1,157 +1,225 @@
-// main.js
-
-let workspace = document.getElementById("workspace");
-let outputDisplay = document.getElementById("output");
-let gateCount = 0;
-let inputCount = 0;
-let gates = [];
+const gates = document.querySelectorAll('.gate');
+const inputs = document.querySelectorAll('.input');
+const outputs = document.querySelectorAll('.output');
+const workspace = document.getElementById('workspace');
+let startConnector = null;
+let drawingLine = null;
 let connections = [];
 
-// Gate logic
-const gateLogic = {
-  AND: (a, b) => a && b,
-  OR: (a, b) => a || b,
-  XOR: (a, b) => a ^ b,
-  NOT: (a) => !a,
-  NAND: (a, b) => !(a && b),
-  NOR: (a, b) => !(a || b),
-  XNOR: (a, b) => !(a ^ b),
-};
+// Draggable gates, inputs, and outputs
+[...gates, ...inputs, ...outputs].forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+        const type = e.target.dataset.type || e.target.dataset.value || e.target.innerText;
+        e.dataTransfer.setData('text/plain', JSON.stringify({ type }));
+        console.log(`Dragging: ${type}`);
+    });
+});
 
-// URLs for PNG images for each gate
-const gateImages = {
-  AND: "https://cdn-icons-png.flaticon.com/512/1400/1400480.png", // Update with correct PNG link
-  OR: "https://cdn-icons-png.flaticon.com/512/1400/1400483.png", // Update with correct PNG link
-  XOR: "https://cdn-icons-png.flaticon.com/512/1400/1400484.png", // Update with correct PNG link
-  NOT: "https://cdn-icons-png.flaticon.com/512/1400/1400481.png", // Update with correct PNG link
-  NAND: "https://cdn-icons-png.flaticon.com/512/1400/1400482.png", // Update with correct PNG link
-  NOR: "https://cdn-icons-png.flaticon.com/512/1400/1400485.png", // Update with correct PNG link
-  XNOR: "https://cdn-icons-png.flaticon.com/512/1400/1400486.png", // Update with correct PNG link
-  INPUT_1: "https://cdn-icons-png.flaticon.com/512/1400/1400490.png", // Input 1 icon link
-  INPUT_0: "https://cdn-icons-png.flaticon.com/512/1400/1400491.png"  // Input 0 icon link
-};
+// Allow dropping in the workspace
+workspace.addEventListener('dragover', (e) => {
+    e.preventDefault();
+});
 
-// Create Gate Block
-function createGate(type) {
-  let gate = createBlock(type, `gate${gateCount++}`);
-  gate.dataset.inputs = JSON.stringify([]);
-  gate.dataset.type = type;
-  
-  // Set background image for the gate
-  gate.style.backgroundImage = `url(${gateImages[type]})`;
-  gate.style.backgroundSize = "contain";
-  gate.style.backgroundRepeat = "no-repeat";
-  gate.style.backgroundPosition = "center";
-  
-  gates.push(gate);
-}
-
-// Create Input Block
-function createInputBlock(value) {
-  let inputBlock = createBlock(`Input ${inputCount}`, `input${inputCount++}`);
-  inputBlock.dataset.value = value;
-  inputBlock.dataset.type = "INPUT";
-  inputBlock.onclick = () => toggleValue(inputBlock);
-
-  // Set background image for input blocks
-  inputBlock.style.backgroundImage = `url(${value === "1" ? gateImages.INPUT_1 : gateImages.INPUT_0})`;
-  inputBlock.style.backgroundSize = "contain";
-  inputBlock.style.backgroundRepeat = "no-repeat";
-  inputBlock.style.backgroundPosition = "center";
-
-  inputBlock.style.backgroundColor = value === "1" ? "#4CAF50" : "#f44336";
-}
-
-// Create a Block (base function)
-function createBlock(name, id) {
-  let block = document.createElement("div");
-  block.classList.add("block");
-  block.dataset.id = id;
-
-  block.draggable = true;
-  block.ondragstart = dragStart;
-  block.ondragend = dragEnd;
-
-  workspace.appendChild(block);
-  return block;
-}
-
-// Drag-and-drop functions
-function dragStart(event) {
-  event.dataTransfer.setData("text/plain", event.target.dataset.id);
-}
-
-function dragEnd(event) {
-  let target = event.target;
-  target.style.position = "absolute";
-  target.style.left = `${event.clientX - target.offsetWidth / 2}px`;
-  target.style.top = `${event.clientY - target.offsetHeight / 2}px`;
-}
-
-// Toggle input block value
-function toggleValue(inputBlock) {
-  inputBlock.dataset.value = inputBlock.dataset.value === "0" ? "1" : "0";
-  inputBlock.style.backgroundColor = inputBlock.dataset.value === "1" ? "#4CAF50" : "#f44336";
-  inputBlock.style.backgroundImage = `url(${inputBlock.dataset.value === "1" ? gateImages.INPUT_1 : gateImages.INPUT_0})`;
-}
-
-// Calculate the result by applying gate logic
-function calculateResult() {
-  outputDisplay.innerHTML = "<h3>Results:</h3>";
-  gates.forEach((gate) => {
-    if (gate.dataset.type !== "INPUT") {
-      let inputs = JSON.parse(gate.dataset.inputs).map(
-        (inputId) => gates.find((g) => g.dataset.id === inputId).dataset.value
-      );
-      let result = gateLogic[gate.dataset.type](...inputs.map(Number));
-      outputDisplay.innerHTML += `<p>${gate.dataset.type} ${gate.dataset.id}: ${result ? "1" : "0"}</p>`;
-      gate.dataset.value = result ? "1" : "0";
-    }
-  });
-}
-
-// Connect two blocks
-function connectBlocks(fromId, toId) {
-  let fromBlock = gates.find(g => g.dataset.id === fromId);
-  let toBlock = gates.find(g => g.dataset.id === toId);
-  
-  if (fromBlock && toBlock && toBlock.dataset.type !== "INPUT") {
-    let inputs = JSON.parse(toBlock.dataset.inputs);
-    if (inputs.length < (toBlock.dataset.type === "NOT" ? 1 : 2)) {
-      inputs.push(fromBlock.dataset.id);
-      toBlock.dataset.inputs = JSON.stringify(inputs);
-      connections.push({ from: fromBlock, to: toBlock });
-      renderConnections();
-    }
-  }
-}
-
-// Render connections with SVG
-function renderConnections() {
-  let svg = document.querySelector("svg");
-  if (svg) svg.remove();
-
-  svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("width", workspace.offsetWidth);
-  svg.setAttribute("height", workspace.offsetHeight);
-  svg.style.position = "absolute";
-  svg.style.top = "0";
-  svg.style.left = "0";
-
-  connections.forEach(({ from, to }) => {
-    let fromPos = from.getBoundingClientRect();
-    let toPos = to.getBoundingClientRect();
+workspace.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
     
-    let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", fromPos.left + fromPos.width / 2);
-    line.setAttribute("y1", fromPos.top + fromPos.height / 2);
-    line.setAttribute("x2", toPos.left + toPos.width / 2);
-    line.setAttribute("y2", toPos.top + toPos.height / 2);
-    line.setAttribute("stroke", "#000");
-    line.setAttribute("stroke-width", "2");
+    const newElement = document.createElement('div');
+    const rect = workspace.getBoundingClientRect();
+    newElement.style.position = 'absolute';
+    newElement.style.left = `${e.clientX - rect.left - 25}px`;
+    newElement.style.top = `${e.clientY - rect.top - 25}px`;
+    newElement.className = data.type === 'OUTPUT' ? 'output' : 'gate';
+    
+    if (data.type === 'OUTPUT') {
+        newElement.innerText = 'Output';
+        newElement.innerHTML += '<div class="connector left"><div class="connector-extension"></div></div>';
+    } else {
+        newElement.innerText = data.type;
 
-    svg.appendChild(line);
-  });
+        if (data.type === 'NOT') {
+            newElement.innerHTML += '<div class="connector left"><div class="connector-extension"></div></div><div class="connector right"><div class="connector-extension"></div></div>';
+        } else if (['AND', 'OR', 'NAND', 'NOR', 'XOR', 'XNOR'].includes(data.type)) {
+            newElement.innerHTML += '<div class="connector left"><div class="connector-extension"></div></div><div class="connector left"><div class="connector-extension"></div></div><div class="connector right"><div class="connector-extension"></div></div>';
+        } else if (['0', '1'].includes(data.type)) {
+            newElement.innerHTML += '<div class="connector right"><div class="connector-extension"></div></div>';
+        }
+    }
 
-  workspace.appendChild(svg);
+    newElement.dataset.type = data.type;
+    newElement.draggable = true;
+
+    newElement.addEventListener('dragend', (e) => {
+        const rect = workspace.getBoundingClientRect();
+        newElement.style.left = `${e.clientX - rect.left - 25}px`;
+        newElement.style.top = `${e.clientY - rect.top - 25}px`;
+    });
+
+    workspace.appendChild(newElement);
+});
+
+// Reset button functionality
+document.getElementById('reset-button').addEventListener('click', () => {
+    while (workspace.firstChild) {
+        workspace.removeChild(workspace.firstChild);
+    }
+    connections = [];
+});
+
+// Connectors interaction
+workspace.addEventListener('mousedown', (e) => {
+    if (e.button === 2 && e.target.classList.contains('connector')) {
+        startConnector = e.target;
+        drawingLine = document.createElement('div');
+        drawingLine.className = 'line';
+        workspace.appendChild(drawingLine);
+        updateLine(e);
+    }
+});
+
+workspace.addEventListener('mousemove', (e) => {
+    if (drawingLine) {
+        updateLine(e);
+    }
+});
+
+workspace.addEventListener('mouseup', (e) => {
+    if (drawingLine && e.button === 2) {
+        if (e.target.classList.contains('connector') && e.target !== startConnector) {
+            const endConnector = e.target;
+
+            // Check if start and end connectors belong to the same block
+            if (startConnector.parentElement === endConnector.parentElement) {
+                console.log("Cannot connect connectors of the same block.");
+                cleanupConnection();
+                return; // Exit if the connectors are from the same block
+            }
+
+            // Prevent output to output connections
+            if (startConnector.classList.contains('output') && endConnector.classList.contains('output')) {
+                console.log("Cannot connect output connectors.");
+                cleanupConnection();
+                return; // Exit if both connectors are outputs
+            }
+
+            // Prevent connecting right connectors to each other
+            if (startConnector.classList.contains('right') && endConnector.classList.contains('right')) {
+                console.log("Cannot connect right connectors.");
+                cleanupConnection();
+                return; // Exit if both connectors are right connectors
+            }
+
+            // Check if either connector already has a connection
+            const isStartConnected = connections.some(conn => conn.start === startConnector || conn.end === startConnector);
+            const isEndConnected = connections.some(conn => conn.start === endConnector || conn.end === endConnector);
+
+            if (isStartConnected || isEndConnected) {
+                console.log("One of the connectors is already connected.");
+                cleanupConnection();
+                return; // Exit if either connector is already connected
+            }
+
+            // If all checks pass, create the connection
+            const line = document.createElement('div');
+            line.className = 'line';
+            workspace.appendChild(line);
+            connectLine(startConnector, endConnector, line);
+            connections.push({ start: startConnector, end: endConnector, line });
+            lockElements(startConnector, endConnector);
+        }
+        cleanupConnection();
+    }
+});
+
+// Helper function to clean up the connection attempt
+function cleanupConnection() {
+    if (drawingLine) {
+        workspace.removeChild(drawingLine);
+    }
+    drawingLine = null;
+    startConnector = null;
 }
+
+
+// Disable right-click context menu
+workspace.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
+
+workspace.addEventListener('keydown', (e) => {
+    if ((e.key === 'Backspace' || (e.ctrlKey && e.key === 'x'))) {
+        const line = document.elementFromPoint(e.clientX, e.clientY);
+        if (line.classList.contains('line')) {
+            const connection = connections.find(conn => conn.line === line);
+            if (connection) {
+                const { start, end } = connection;
+                unlockElements(start, end);
+                workspace.removeChild(line);
+                connections = connections.filter(conn => conn !== connection);
+            }
+        }
+        const block = document.elementFromPoint(e.clientX, e.clientY).closest('.gate, .output');
+        if (block) {
+            block.querySelectorAll('.connector').forEach(connector => {
+                const connection = connections.find(conn => conn.start === connector || conn.end === connector);
+                if (connection) {
+                    const { line, start, end } = connection;
+                    workspace.removeChild(line);
+                    connections = connections.filter(conn => conn !== connection);
+                    unlockElements(start, end);
+                }
+            });
+            workspace.removeChild(block);
+        }
+    }
+});
+
+function updateLine(e) {
+    const rect = workspace.getBoundingClientRect();
+    const start = startConnector.getBoundingClientRect();
+    const x1 = start.left + start.width / 2 - rect.left;
+    const y1 = start.top + start.height / 2 - rect.top;
+    const x2 = e.clientX - rect.left;
+    const y2 = e.clientY - rect.top;
+    const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+    drawingLine.style.width = `${length}px`;
+    drawingLine.style.transform = `rotate(${angle}deg)`;
+    drawingLine.style.left = `${x1}px`;
+    drawingLine.style.top = `${y1}px`;
+}
+
+function connectLine(start, end, line) {
+    const rect = workspace.getBoundingClientRect();
+    const startRect = start.getBoundingClientRect();
+    const endRect = end.getBoundingClientRect();
+    const x1 = startRect.left + startRect.width / 2 - rect.left;
+    const y1 = startRect.top + startRect.height / 2 - rect.top;
+    const x2 = endRect.left + endRect.width / 2 - rect.left;
+    const y2 = endRect.top + endRect.height / 2 - rect.top;
+    const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+    line.style.width = `${length}px`;
+    line.style.transform = `rotate(${angle}deg)`;
+    line.style.left = `${x1}px`;
+    line.style.top = `${y1}px`;
+}
+
+function lockElements(start, end) {
+    start.parentElement.draggable = false;
+    end.parentElement.draggable = false;
+    start.parentElement.addEventListener('dragstart', preventDrag);
+    end.parentElement.addEventListener('dragstart', preventDrag);
+}
+
+function unlockElements(start, end) {
+    start.parentElement.draggable = true;
+    end.parentElement.draggable = true;
+    start.parentElement.removeEventListener('dragstart', preventDrag);
+    end.parentElement.removeEventListener('dragstart', preventDrag);
+}
+
+function preventDrag(e) {
+    e.preventDefault();
+}
+
