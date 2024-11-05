@@ -63,8 +63,30 @@
         Output
         <div class="connector left"><div class="connector-extension"></div></div>
     </div>
-    
+     <button id="evaluate-button">Evaluate</button>
     <button id="reset-button">Reset</button>
+  <!-- Help Button -->
+<button id="help-button">?</button>
+
+<!-- Help Modal -->
+<div id="help-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Instructions</h2>
+        <p>Here’s how to use this program:</p>
+        <ul>
+            <li><strong>Making Connections:</strong> Hold down the right mouse button on a connector and drag it to another connector to create a connection.</li>
+            <li><strong>Moving Blocks:</strong> Click and drag blocks to reposition them within the workspace.</li>
+            <li><strong>Output Colors:</strong> The output block changes color based on the result:
+                <ul>
+                    <li><span style="color: green;">Green</span> - Output is 1</li>
+                    <li><span style="color: red;">Red</span> - Output is 0</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+</div>
+
 </div>
 
 <div id="workspace"></div>

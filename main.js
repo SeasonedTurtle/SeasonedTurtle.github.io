@@ -22,7 +22,13 @@ workspace.addEventListener('dragover', (e) => {
 
 workspace.addEventListener('drop', (e) => {
     e.preventDefault();
-    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    let data;
+    try {
+        data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    } catch (error) {
+        console.error('Error parsing JSON data:', error);
+        return;
+    }
     
     const newElement = document.createElement('div');
     const rect = workspace.getBoundingClientRect();
@@ -47,6 +53,7 @@ workspace.addEventListener('drop', (e) => {
     }
 
     newElement.dataset.type = data.type;
+    newElement.dataset.id = `element-${Date.now()}`;
     newElement.draggable = true;
 
     newElement.addEventListener('dragend', (e) => {
@@ -140,7 +147,6 @@ function cleanupConnection() {
     startConnector = null;
 }
 
-
 // Disable right-click context menu
 workspace.addEventListener('contextmenu', (e) => {
     e.preventDefault();
@@ -223,3 +229,88 @@ function preventDrag(e) {
     e.preventDefault();
 }
 
+function evaluateCircuit() {
+    const nodes = {}; // Store gate/input/output elements
+
+    // Create nodes for each input and gate
+    connections.forEach(conn => {
+        const startType = conn.start.parentElement.dataset.type;
+        const startId = conn.start.parentElement.dataset.id;
+        const endId = conn.end.parentElement.dataset.id;
+
+        // Initialize nodes if they don't already exist
+        if (!nodes[startId]) {
+            nodes[startId] = { type: startType, inputs: [], outputs: [] };
+        }
+        if (!nodes[endId]) {
+            nodes[endId] = { type: conn.end.parentElement.dataset.type, inputs: [], outputs: [] };
+        }
+
+        // Add connections
+        nodes[startId].outputs.push(endId);
+        nodes[endId].inputs.push(startId);
+    });
+
+    // Evaluate each node based on its type
+    const nodeValues = {}; // Hold the values for each node after evaluation
+
+    function evaluateNode(id) {
+        if (nodeValues.hasOwnProperty(id)) return nodeValues[id]; // If already evaluated, return the value
+        const node = nodes[id];
+        
+        // Evaluate inputs first
+        const inputValues = node.inputs.map(inputId => evaluateNode(inputId));
+
+        switch (node.type) {
+            case '0': return nodeValues[id] = 0;
+            case '1': return nodeValues[id] = 1;
+            case 'AND': return nodeValues[id] = inputValues.every(v => v === 1) ? 1 : 0;
+            case 'OR': return nodeValues[id] = inputValues.some(v => v === 1) ? 1 : 0;
+            case 'NAND': return nodeValues[id] = inputValues.every(v => v === 1) ? 0 : 1;
+            case 'NOR': return nodeValues[id] = inputValues.some(v => v === 1) ? 0 : 1;
+            case 'XOR': return nodeValues[id] = inputValues.reduce((a, b) => a ^ b);
+            case 'XNOR': return nodeValues[id] = inputValues.reduce((a, b) => a ^ b) === 1 ? 0 : 1;
+            case 'NOT': return nodeValues[id] = inputValues[0] === 1 ? 0 : 1;
+            case 'OUTPUT': return nodeValues[id] = inputValues[0];
+            default: return nodeValues[id] = null;
+        }
+    }
+
+    // Evaluate all output nodes and set color
+    Object.keys(nodes).forEach(id => {
+        if (nodes[id].type === 'OUTPUT') {
+            const outputValue = evaluateNode(id);
+            const outputElement = document.querySelector(`[data-id="${id}"]`);
+            if (outputElement) {
+                outputElement.style.backgroundColor = outputValue === 1 ? 'green' : 'red';
+            }
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const helpButton = document.getElementById("help-button");
+    const helpModal = document.getElementById("help-modal");
+    const closeModal = document.querySelector(".close");
+
+    // Show the modal when the help button is clicked
+    helpButton.onclick = function() {
+        helpModal.style.display = 'block';
+    };
+
+    // Hide the modal when the close button is clicked
+    closeModal.onclick = function() {
+        helpModal.style.display = 'none';
+    };
+
+    // Hide the modal if the user clicks outside of it
+    window.onclick = function(event) {
+        if (event.target === helpModal) {
+            helpModal.style.display = 'none';
+        }
+    };
+
+    // You can add more functionality here for the gates and other elements
+});
+
+document.getElementById('evaluate-button').addEventListener('click', evaluateCircuit);
